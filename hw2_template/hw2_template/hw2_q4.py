@@ -111,7 +111,8 @@ class LogisticRegression:
     def _sigmoid(self, z):
         #TODO: (1a) Implement sigmoid function
         # Hint: The sigmoid function is defined as 1 / (1 + e^(-z)).
-        pass
+        return 1/(np.exp(-1 * z) + 1)
+        
 
     def transform(self, X):
         """b. Create new features by non-linear transforms (e.g. squares)"""
@@ -123,7 +124,15 @@ class LogisticRegression:
         # Hint: X1 is the first column of X (X[:, 0]) and X2 is the second (X[:, 1]).
         # Create the new feature columns and then stack them horizontally with the original X.
         # The final returned array should have 5 columns.
-        pass
+        X1 = X[:,0].reshape(-1,1)
+        X2 = X[:,1].reshape(-1,1)
+
+        X1_2 = np.square(X1)
+        X2_2 = np.square(X2)
+
+        X12 = np.multiply(X1, X2)
+        # print(X.shape, X1.shape, X2.shape, np.hstack((X1, X2)).shape)
+        return np.hstack((X1, X2, X1_2, X2_2, X12))
 
     def _compute_cost(self, y, y_pred):
         m = len(y)
@@ -131,16 +140,17 @@ class LogisticRegression:
         # Hint: Implement the binary cross-entropy (log loss) cost function.
         # Formula: J = -(1/m) * Σ [y*log(y_pred) + (1-y)*log(1-y_pred)]
         # Be careful about taking the log of 0.
-        cost = 0
+        cost = (-1/m) * np.sum(np.multiply(y, np.log(y_pred)) + np.multiply((1 - y), np.log((1 - y_pred))))
 
         # Add regularization term
         reg_cost = 0
         if self.regularization == 'L2':
             #TODO: (2a) implement L2 Regularization
-            pass
+            # from https://medium.com/data-science/understanding-the-scaling-of-l%C2%B2-regularization-in-the-context-of-neural-networks-e3d25f8b50db
+            reg_cost = (self.lambda_val / (2*m)) * np.sum(np.square(self.weights))
         elif self.regularization == 'L1':
             #TODO: (2b) implement L1 Regularization
-            pass
+            reg_cost = (self.lambda_val / m) * np.sum(np.abs(self.weights))
 
         return cost + reg_cost
 
@@ -165,8 +175,8 @@ class LogisticRegression:
 
             # Compute gradients
             #TODO: (1d) compute gradients
-            dw = 0
-            db = 0
+            dw = np.matmul(np.transpose(X), (y_pred - y))/len(y)
+            db = np.mean(y_pred - y)
 
             # Add regularization to gradients
             if self.regularization == 'L2':
@@ -177,8 +187,8 @@ class LogisticRegression:
 
             # Update weights and bias
             # TODO: (1a) update weights and bias
-            self.weights -= 0
-            self.bias -= 0
+            self.weights -= self.learning_rate * dw
+            self.bias -= self.learning_rate * db
 
             if i % 1000 == 0:
                 print(f"Cost after iteration {i}: {cost:.4f}")
@@ -278,8 +288,8 @@ We will search for the best learning_rate (alpha) and regularization strength (l
 """
 
 #TODO: (3) define a list of at least 3 learning rates and at least 3 lambda values you want to validate
-learning_rates = []
-lambda_values = []
+learning_rates = [0.9, 0.5, 0.25, 0.1, 0.01]
+lambda_values = [0.9, 0.5, 0.25, 0.1, 0.01]
 best_accuracy = 0
 best_params = {}
 best_model = None
@@ -350,16 +360,16 @@ def run_gd_variant(optimizer='batch', batch_size=32, n_epochs=100):
             # TODO: (4) fix X_batch and y_batch below for each of these three cases
             if optimizer == 'stochastic':
                  # Hint: For SGD, the batch size is 1. Slice a single sample (row
-                 X_batch = None
-                 y_batch = None
+                 X_batch = X_shuffled[:1,]
+                 y_batch = y_shuffled[:1,]
             elif optimizer == 'mini-batch':
                  # Hint: For Mini-batch GD, slice a chunk of `batch_size` samples
-                 X_batch = None
-                 y_batch = None
+                 X_batch = X_shuffled[:16,]
+                 y_batch = y_shuffled[:16,]
             else: # batch
                  # Hint: For Batch GD, the "batch" is the entire training set.
-                 X_batch = None
-                 y_batch = None
+                 X_batch = X_shuffled
+                 y_batch = y_shuffled
 
             m_batch = len(y_batch)
             if m_batch == 0: continue
